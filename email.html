@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inbox &mdash; Layered Defense Simulation</title>
+    <meta
+      name="description"
+      content="A simulated inbox with five messages. One of them is a phishing attempt — can you spot it before you click?"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+
+    <!-- Runs before anything below paints, so the page never
+         flashes the wrong theme — see theme-init.js for why this
+         has no defer/async attribute. -->
+    <script src="js/theme-init.js"></script>
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="topbar__brand">
+        <span class="brand-mark" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" focusable="false"><polygon points="8,1 14.1,4.5 14.1,11.5 8,15 1.9,11.5 1.9,4.5" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span>
+        <span class="brand-name"
+          >Layered<span class="brand-name-accent">Defense</span></span
+        >
+      </div>
+      <nav class="topbar__progress" aria-label="Simulation progress">
+        <span class="step step--done">
+          <span class="step__index">01</span>
+          <span class="step__label">Overview</span>
+        </span>
+        <span class="step step--current">
+          <span class="step__index">02</span>
+          <span class="step__label" id="step-label-inbox">Inbox</span>
+        </span>
+        <span class="step">
+          <span class="step__index">03</span>
+          <span class="step__label">Login</span>
+        </span>
+        <span class="step">
+          <span class="step__index">04</span>
+          <span class="step__label">Defenses</span>
+        </span>
+        <span class="step">
+          <span class="step__index">05</span>
+          <span class="step__label">Results</span>
+        </span>
+      </nav>
+
+      <button
+        type="button"
+        id="theme-toggle"
+        class="theme-toggle"
+        aria-label="Switch to light mode"
+      >
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <g stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <line x1="8" y1="0.5" x2="8" y2="2.3" />
+            <line x1="8" y1="13.7" x2="8" y2="15.5" />
+            <line x1="0.5" y1="8" x2="2.3" y2="8" />
+            <line x1="13.7" y1="8" x2="15.5" y2="8" />
+            <line x1="2.6" y1="2.6" x2="3.9" y2="3.9" />
+            <line x1="12.1" y1="12.1" x2="13.4" y2="13.4" />
+            <line x1="2.6" y1="13.4" x2="3.9" y2="12.1" />
+            <line x1="12.1" y1="3.9" x2="13.4" y2="2.6" />
+          </g>
+        </svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            d="M13.5 9.5A6 6 0 1 1 6.5 2.5 4.8 4.8 0 0 0 13.5 9.5Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <main class="page-main">
+      <section class="page-intro">
+        <p class="eyebrow">Step 02 &mdash; Simulated Inbox</p>
+        <h1 class="page-title">Check today's messages.</h1>
+        <p class="page-lede">
+          Five new messages are waiting. Read through them the way you would
+          at your own desk &mdash; one of them is not what it claims to be.
+          This is a simulation: no real messages, links, or accounts are
+          involved.
+        </p>
+      </section>
+
+      <!-- LIST VIEW: the inbox itself. Shown by default. -->
+      <section id="inbox-list-view" aria-label="Inbox">
+        <ul id="email-list" class="email-list">
+          <!-- Filled in by email.js -->
+        </ul>
+        <div class="continue-without-clicking">
+          <p class="continue-without-clicking__note">
+            Not clicking anything here? That's a valid choice.
+          </p>
+          <button
+            type="button"
+            id="continue-without-clicking-btn"
+            class="btn btn--secondary"
+          >
+            Continue without clicking
+          </button>
+        </div>
+      </section>
+
+      <!-- DETAIL VIEW: one opened message. Hidden until a message is
+           clicked; email.js toggles which of these two sections is
+           visible. tabindex="-1" lets JS move keyboard focus here
+           without adding it to the normal tab order. -->
+      <section
+        id="inbox-detail-view"
+        class="email-detail glass"
+        aria-label="Open message"
+        tabindex="-1"
+        hidden
+      >
+        <!-- Filled in by email.js -->
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>
+        Educational simulation built for a quantitative research study on
+        layered network security. Runs entirely in your browser &mdash; HTML,
+        CSS &amp; JavaScript only, no server, no data collection.
+      </p>
+    </footer>
+
+    <!-- state.js first (email.js calls setState), then email.js. -->
+    <script src="js/theme.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/email.js"></script>
+  </body>
+</html>

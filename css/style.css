@@ -1,0 +1,2283 @@
+/*
+  ============================================================
+  style.css — Shared design system for the whole simulator
+  ============================================================
+  This file is loaded by EVERY page in the project, so it is
+  split into two kinds of sections:
+
+    1) DESIGN SYSTEM  — colors, type, spacing, buttons, cards,
+       the top bar, chips, etc. These are reused on every page
+       (email inbox, login, dashboard, results).
+
+    2) PAGE-SPECIFIC   — styles only used on the landing page
+       (the hero layout and its console/diagram graphic).
+       These are clearly marked and can safely be ignored when
+       building later pages, or split into their own file later
+       if the project grows.
+
+  Section list (search for these comments to jump around):
+    1. Design tokens (CSS custom properties)
+    2. Reset & base styles
+    3. Typography
+    4. Layout helpers
+    5. Top bar / progress steps
+    6. Buttons
+    7. Glass panel component
+    8. Status chips
+    9. Landing page: hero layout
+    10. Landing page: console + network diagram
+    11. Footer
+    12. Motion & accessibility
+    13. Responsive breakpoints
+  ============================================================
+*/
+
+/* ============================================================
+   1. DESIGN TOKENS
+   All colors, fonts, spacing and other repeated values live
+   here as CSS custom properties ("variables"), so every page
+   and every component pulls from the same palette. Changing a
+   value here updates the whole site.
+   ============================================================ */
+:root {
+  /* --- Color: backgrounds --- */
+  --color-bg: #070b14; /* page background — deep navy, almost black */
+  --color-bg-elevated: #0e1526; /* top bar / raised surfaces */
+  --color-panel: #101a2e; /* base tint behind glass panels */
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* --- Color: accents ---
+     Cyan = data / encryption. Green = safe / secure state.
+     Red = threat / danger. Used sparingly and always on purpose. */
+  --color-cyan: #3fd3f2;
+  --color-cyan-dim: #1c8fae;
+  --color-green: #3eeba6;
+  --color-red: #ff5c7a;
+  --color-amber: #f5a623;
+
+  /* --- Color: text --- */
+  --color-text: #eaf0fb;
+  --color-text-muted: #8996b3;
+  --color-text-faint: #5b6784;
+
+  /* Text color to use ON TOP of a solid --color-cyan fill (e.g. the
+     primary button). Dark text reads best on this theme's bright
+     cyan; the light theme's deeper teal needs the opposite. */
+  --color-on-accent: #04141a;
+
+  /* --- Color: surfaces ---
+     Small reusable tint values used by several components (the
+     glass-panel gradient, chip backgrounds, input fields, the
+     background grid). Named by strength rather than by component,
+     since the SAME faint/medium tint shows up in several places. */
+  --surface-tint: rgba(255, 255, 255, 0.03); /* faint — chips, inputs */
+  --surface-tint-strong: rgba(255, 255, 255, 0.06); /* glass start, toggle bg */
+  --glass-fade: rgba(255, 255, 255, 0.02); /* glass gradient's faded end */
+  --grid-line: rgba(255, 255, 255, 0.035); /* faint background grid lines */
+  --toolbar-tint: rgba(0, 0, 0, 0.25); /* fake browser bar strip */
+
+  /* --- Typography ---
+     System font stacks are used on purpose: they load
+     instantly, need no internet connection, and keep the
+     project 100% self-contained for offline / GitHub Pages use. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* --- Spacing scale (used for margin/padding/gap) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  /* --- Radius & shadow --- */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --glow-cyan: 0 0 32px rgba(63, 211, 242, 0.18);
+
+  /* --- Layout --- */
+  --content-width: 1120px;
+}
+
+/* ============================================================
+   1B. LIGHT THEME OVERRIDES
+   Every rule in this stylesheet is written against the tokens
+   above instead of hardcoded colors, on purpose — it means a
+   whole second theme is just a second set of token values, not
+   a rewrite of every component. `data-theme="light"` is set on
+   <html> by js/theme-init.js (before first paint, to avoid a
+   flash of the wrong theme) and toggled by js/theme.js.
+   ============================================================ */
+:root[data-theme="light"] {
+  --color-bg: #f4f7fb;
+  --color-bg-elevated: #ffffff;
+  --color-panel: #ffffff;
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-strong: rgba(15, 23, 42, 0.16);
+
+  /* Deepened so text and icons keep enough contrast against a
+     light background — the dark theme's brighter cyan/green/red
+     would read as washed-out here. Checked against WCAG AA. */
+  --color-cyan: #0b7285;
+  --color-cyan-dim: #6bc3d6;
+  --color-green: #0b8a5a;
+  --color-red: #c81e45;
+  --color-amber: #a15c00;
+
+  --color-text: #0f172a;
+  --color-text-muted: #47556b;
+  --color-text-faint: #5b6b85;
+  --color-on-accent: #ffffff;
+
+  --surface-tint: rgba(15, 23, 42, 0.025);
+  --surface-tint-strong: rgba(15, 23, 42, 0.05);
+  --glass-fade: rgba(15, 23, 42, 0.012);
+  --grid-line: rgba(15, 23, 42, 0.05);
+  --toolbar-tint: rgba(15, 23, 42, 0.05);
+
+  --glow-cyan: 0 8px 28px rgba(15, 23, 42, 0.1);
+  color-scheme: light;
+}
+
+
+/* ============================================================
+   2. RESET & BASE STYLES
+   A small, modern reset — just enough to make every browser
+   start from the same baseline.
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+/* Subtle fixed background texture: a faint grid, evoking a
+   network / systems-monitoring feel without being distracting. */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: linear-gradient(
+      to right,
+      var(--grid-line) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    #000 40%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    #000 40%,
+    transparent 100%
+  );
+}
+
+/* ============================================================
+   3. TYPOGRAPHY
+   ============================================================ */
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+p {
+  margin: 0;
+}
+
+/* The small, uppercase, monospace label used above headlines
+   and on status readouts throughout the project — this doubles
+   as the project's "data / system readout" signature style. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-cyan);
+  margin: 0 0 var(--space-4);
+}
+
+/* ============================================================
+   4. LAYOUT HELPERS
+   ============================================================ */
+.wrap {
+  width: 100%;
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
+
+/* ============================================================
+   5. TOP BAR / PROGRESS STEPS
+   Shown on every page. Doubles as navigation context: the
+   participant can always see how far through the simulation
+   they are, because the steps are a real sequence (not just
+   decoration).
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: rgba(63, 211, 242, 0.12);
+  border: 1px solid var(--color-cyan-dim);
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.brand-name-accent {
+  color: var(--color-cyan);
+}
+
+.topbar__progress {
+  display: flex;
+  gap: var(--space-5);
+  font-family: var(--font-mono);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+}
+
+.step__index {
+  color: var(--color-text-faint);
+}
+
+.step--current {
+  color: var(--color-text);
+}
+
+.step--current .step__index {
+  color: var(--color-cyan);
+}
+
+/* Light/dark mode toggle. Lives in the top bar on every page, as
+   its own flex item — NOT inside .topbar__progress — so it stays
+   visible even on narrow screens where the step list is hidden. */
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-tint);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--color-cyan);
+  border-color: var(--color-cyan-dim);
+}
+
+/* Both icons always exist in the DOM; only one is shown at a time.
+   Showing the icon for the mode you'd SWITCH TO (a sun while in
+   dark mode, a moon while in light mode) is the more common
+   convention, so that's what this does. */
+.theme-toggle .icon-moon {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-toggle .icon-sun {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-toggle .icon-moon {
+  display: block;
+}
+
+/* ============================================================
+   6. BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 14px 28px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.btn--primary {
+  background: var(--color-cyan);
+  color: var(--color-on-accent);
+  box-shadow: var(--glow-cyan);
+}
+
+.btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 40px rgba(63, 211, 242, 0.3);
+}
+
+.btn--primary:active {
+  transform: translateY(0);
+}
+
+/* Lower-emphasis variant — used where an action should be available
+   but not compete with the page's main call to action (e.g. Restart,
+   once a research survey link is the priority on the Results page). */
+.btn--secondary {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-strong);
+}
+
+.btn--secondary:hover {
+  color: var(--color-text);
+  border-color: var(--color-cyan-dim);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   7. GLASS PANEL COMPONENT
+   The "glassmorphism" surface used for cards, the hero console,
+   and (in later phases) the dashboard and result cards.
+   ============================================================ */
+.glass {
+  background: linear-gradient(
+    160deg,
+    var(--surface-tint-strong),
+    var(--glass-fade)
+  );
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* ============================================================
+   8. STATUS CHIPS
+   Small pill readouts used to show the state of VPN / Firewall
+   / MFA. On the landing page they're static ("standby"); on the
+   dashboard (built in a later phase) they'll become live and
+   interactive.
+   ============================================================ */
+.chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--surface-tint);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  list-style: none;
+}
+
+.chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+  flex-shrink: 0;
+}
+
+.chip--standby .chip__dot {
+  background: var(--color-text-faint);
+  box-shadow: none;
+}
+
+.chip--active {
+  border-color: var(--color-cyan-dim);
+  color: var(--color-text);
+}
+
+.chip--active .chip__dot {
+  background: var(--color-cyan);
+  box-shadow: 0 0 8px rgba(63, 211, 242, 0.6);
+}
+
+/* ============================================================
+   9. LANDING PAGE: HERO LAYOUT
+   (Page-specific — only used on index.html)
+   ============================================================ */
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: var(--space-8);
+  align-items: center;
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding: var(--space-9) var(--space-5);
+  min-height: calc(100vh - 76px); /* fill the space below the top bar */
+}
+
+.hero__content {
+  max-width: 560px;
+}
+
+.hero__title {
+  font-size: clamp(2.1rem, 4vw, 3.1rem);
+}
+
+.hero__title-accent {
+  color: var(--color-cyan);
+}
+
+.hero__lede {
+  margin-top: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  max-width: 48ch;
+}
+
+.hero__actions {
+  margin-top: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.hero__disclaimer {
+  font-size: 0.82rem;
+  color: var(--color-text-faint);
+}
+
+/* ============================================================
+   9b. LANDING PAGE: STUDY SETUP
+   Three cards declaring the fixed Input side of the framework:
+   the threat scenario, the controls under evaluation, and what
+   this study measures. Reuses the .glass panel look already used
+   for the hero console and the results-page cards, so it reads as
+   the same design system rather than a bolted-on block.
+   ============================================================ */
+/* ============================================================
+   SCENARIO CHOICE PAGE (choose.html)
+   One clickable card per phishing scenario. Deliberately plain
+   cards rather than anything gamified — this is a decision point,
+   not a reward moment, so the design stays quiet and lets the
+   scenario descriptions do the work.
+   ============================================================ */
+.scenario-choice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.scenario-choice {
+  padding: var(--space-5);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.scenario-choice:hover,
+.scenario-choice:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--color-cyan-dim);
+}
+
+.scenario-choice__channel {
+  display: inline-block;
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--surface-tint);
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scenario-choice__title {
+  margin-top: var(--space-3);
+  font-size: 1.05rem;
+}
+
+.scenario-choice__description {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.study-setup {
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding: 0 var(--space-5) var(--space-9);
+}
+
+.study-setup__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+.study-setup__card {
+  padding: var(--space-6);
+}
+
+.study-setup__title {
+  font-size: 1.05rem;
+  margin-bottom: var(--space-3);
+}
+
+.study-setup__lead {
+  color: var(--color-text);
+  font-size: 0.95rem;
+  margin-bottom: var(--space-2);
+}
+
+.study-setup__note {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.study-setup__controls {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.study-setup__controls li {
+  padding-left: var(--space-5);
+  position: relative;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.study-setup__controls li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-cyan);
+}
+
+.study-setup__controls li strong {
+  color: var(--color-text);
+}
+
+@media (max-width: 900px) {
+  .study-setup__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   10. LANDING PAGE: CONSOLE + NETWORK DIAGRAM
+   The signature visual: a small "session monitor" panel that
+   previews the exact laptop → internet → server path the
+   participant will interact with later, on the dashboard page.
+   ============================================================ */
+.hero__console {
+  position: relative;
+  padding: var(--space-6);
+  overflow: hidden;
+}
+
+.console__label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin-bottom: var(--space-6);
+}
+
+.console__diagram {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+}
+
+.diagram__packet {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: packet-travel;
+  animation-duration: 3.2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* Small labels under each diagram icon (You / Internet / Server) so
+   the shapes read as what they represent instead of staying
+   abstract. Shared by the landing page's preview diagram and the
+   dashboard's live diagram. */
+.diagram-caption {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  fill: currentColor;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
+}
+
+.console__status {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* A soft scanning line that drifts down the console panel to
+   suggest an active monitoring system. Purely decorative
+   (aria-hidden in the HTML) and disabled for reduced-motion
+   users below. */
+.console__scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(63, 211, 242, 0.08),
+    transparent
+  );
+  animation: scanline-drift 6s linear infinite;
+  pointer-events: none;
+}
+
+/* ============================================================
+   11. FOOTER
+   ============================================================ */
+.site-footer {
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding: var(--space-6) var(--space-5) var(--space-8);
+  color: var(--color-text-faint);
+  font-size: 0.82rem;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   12. MOTION & ACCESSIBILITY
+   ============================================================ */
+@keyframes packet-travel {
+  0% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(210px);
+  }
+  50% {
+    transform: translateX(210px);
+  }
+  95% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scanline-drift {
+  0% {
+    transform: translateY(-140px);
+  }
+  100% {
+    transform: translateY(340px);
+  }
+}
+
+/* Always show a clear focus outline for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 3px;
+}
+
+/* Respect users who have asked their system to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  .diagram__packet,
+  .console__scanline,
+  .dash-path__packet {
+    animation: none !important;
+  }
+  .btn {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   13. RESPONSIVE BREAKPOINTS
+   ============================================================ */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: var(--space-7);
+    min-height: auto;
+  }
+
+  .topbar__progress {
+    display: none; /* keep the mobile top bar simple and uncluttered */
+  }
+}
+
+@media (max-width: 480px) {
+  .hero__actions {
+    align-items: stretch;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   14. SHARED "INNER PAGE" LAYOUT
+   Used by every page AFTER the landing page (inbox, login,
+   dashboard, results). Kept generic on purpose — rather than
+   naming these classes "inbox-title" etc — so later phases can
+   reuse the same intro/title pattern instead of duplicating CSS.
+   ============================================================ */
+.page-main {
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding: var(--space-8) var(--space-5) var(--space-9);
+}
+
+.page-intro {
+  max-width: 640px;
+  margin-bottom: var(--space-7);
+}
+
+.page-title {
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  margin-top: var(--space-2);
+}
+
+.page-lede {
+  margin-top: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+/* The "I'm not clicking this" escape hatch at the bottom of the
+   inbox/texts list — deliberately understated (a secondary button,
+   not a call to action) so it doesn't read as the "right" choice
+   to make, just an available one. */
+.continue-without-clicking {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.continue-without-clicking__note {
+  margin-bottom: var(--space-3);
+  color: var(--color-text-faint);
+  font-size: 0.88rem;
+}
+
+/* Small "done" state for top-bar steps that are behind the
+   participant. A checkmark communicates real progress, not
+   just decoration — see the design note in email.html. */
+.step--done .step__index {
+  color: var(--color-green);
+}
+
+.step--done .step__index::before {
+  content: "\2713 ";
+}
+
+/* ============================================================
+   15. EMAIL INBOX PAGE (Phase 2)
+   ============================================================ */
+.email-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.email-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.email-item:hover,
+.email-item:focus-visible {
+  transform: translateY(-1px);
+  border-color: var(--color-border-strong);
+}
+
+.email-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(63, 211, 242, 0.12);
+  border: 1px solid var(--color-cyan-dim);
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.email-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* lets text-overflow ellipsis work inside a CSS grid item */
+}
+
+.email-sender {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.email-subject {
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+.email-preview {
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-date {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+.email-detail {
+  padding: var(--space-6);
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0 0 var(--space-5);
+}
+
+.btn-back:hover {
+  color: var(--color-text);
+}
+
+.email-detail__header {
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.email-detail__sender {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+}
+
+.email-detail__subject {
+  margin-top: var(--space-2);
+  font-size: 1.4rem;
+}
+
+.email-detail__date {
+  margin-top: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+}
+
+.email-detail__body p {
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+  line-height: 1.7;
+  max-width: 60ch;
+}
+
+.phishing-link-wrap {
+  margin-top: var(--space-2);
+}
+
+.phishing-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-cyan);
+  text-decoration: underline;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.phishing-link:hover {
+  color: var(--color-text);
+}
+
+.email-hint {
+  margin-top: var(--space-3);
+  font-size: 0.82rem;
+  color: var(--color-text-faint);
+  max-width: 46ch;
+}
+
+@media (max-width: 640px) {
+  .email-item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .email-date {
+    display: none;
+  }
+}
+
+/* ============================================================
+   SMS / TEXT MESSAGE UI (sms.html)
+   The Smishing scenario's lure lives here instead of the inbox.
+   Deliberately mirrors .email-item/.email-detail's layout and
+   spacing so it reads as the same design system, with the
+   thread's messages rendered as chat bubbles instead of an email
+   body, since that's what actually distinguishes a texting UI
+   from an inbox.
+   ============================================================ */
+.sms-thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sms-thread-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.sms-thread-item:hover,
+.sms-thread-item:focus-visible {
+  transform: translateY(-1px);
+  border-color: var(--color-border-strong);
+}
+
+.sms-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(63, 211, 242, 0.12);
+  border: 1px solid var(--color-cyan-dim);
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sms-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* lets text-overflow ellipsis work inside a CSS grid item */
+}
+
+.sms-contact {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.sms-contact-number {
+  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+}
+
+.sms-preview {
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sms-time {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+.sms-detail {
+  padding: var(--space-6);
+}
+
+.sms-detail__header {
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sms-detail__contact {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.sms-detail__time {
+  margin-top: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+}
+
+.sms-detail__thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* A received message bubble — rounded, tinted, and deliberately
+   NOT full-width, so it reads as a phone conversation rather than
+   a paragraph of body text. */
+.sms-bubble {
+  align-self: flex-start;
+  max-width: 32ch;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 16px 16px 16px 4px;
+  background: var(--surface-tint);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.phishing-link--sms {
+  display: inline;
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+  .sms-thread-item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .sms-time {
+    display: none;
+  }
+
+  .sms-bubble {
+    max-width: 85%;
+  }
+}
+
+/* ============================================================
+   16. FAKE LOGIN PAGE (Phase 3)
+   Simulates the page a phishing link would lead to. Wrapped in a
+   "fake browser window" so the address-bar mismatch introduced
+   on the inbox page (Phase 2) is visible here too, not just
+   described in a tooltip.
+   ============================================================ */
+.login-main {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-7);
+}
+
+.fake-browser {
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+}
+
+.fake-browser__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--toolbar-tint);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fake-browser__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.fake-browser__url {
+  margin-left: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.login-card {
+  padding: var(--space-7) var(--space-6);
+}
+
+/* Each scenario sets --login-accent inline via JS (see
+   applyFakeDestinationBranding in login.js) — falls back to the
+   site's own cyan if a scenario ever doesn't set one, so this
+   never breaks even for an unbranded scenario. */
+.login-card__brand {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--login-accent, var(--color-cyan));
+  margin-bottom: var(--space-4);
+}
+
+.login-card .btn--primary {
+  background: var(--login-accent, var(--color-cyan));
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.login-card .btn--primary:hover {
+  box-shadow: 0 0 32px color-mix(in srgb, var(--login-accent, var(--color-cyan)) 35%, transparent);
+}
+
+.login-card__title {
+  font-size: 1.5rem;
+}
+
+.login-card__subtitle {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.field__label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.field input {
+  width: 100%;
+  padding: 12px var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--surface-tint);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+}
+
+.field input:focus-visible {
+  outline: none;
+  border-color: var(--color-cyan);
+}
+
+/* Shown on Username/Password when Sign In is pressed while that
+   field is still empty. Removed the moment the participant starts
+   typing (see login.js). */
+.field input.is-invalid {
+  border-color: var(--color-red);
+}
+
+/* The "please fill in both fields" message itself. */
+.field-error {
+  margin: -8px 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 92, 122, 0.35);
+  background: rgba(255, 92, 122, 0.08);
+  color: var(--color-red);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.btn--full {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.login-card .btn-back {
+  margin-top: var(--space-5);
+  padding: 0;
+}
+
+/* ============================================================
+   17. SECURITY DASHBOARD (Phase 4)
+   ============================================================ */
+.notice {
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 92, 122, 0.35);
+  background: rgba(255, 92, 122, 0.08);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.notice a {
+  color: var(--color-red);
+  text-decoration: underline;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.controls-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Each row: a toggle switch + its always-visible role/limitation
+   copy. The limitation is shown up front, not hidden behind a
+   click — the point is honesty about what a control does and
+   doesn't do, whether or not it's switched on. */
+.control-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.control-row__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.control-row__label {
+  font-weight: 700;
+  font-size: 0.98rem;
+}
+
+.control-row__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.control-row__learn {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--color-cyan);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-cyan-dim);
+  white-space: nowrap;
+}
+
+.control-row__learn:hover {
+  color: var(--color-text);
+  border-bottom-color: var(--color-text);
+}
+
+.control-row__role,
+.control-row__limit {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.control-row__role strong,
+.control-row__limit strong {
+  color: var(--color-text);
+}
+
+/* Accessible toggle switch. A real <button role="switch"> rather
+   than a styled checkbox, so screen readers announce it as a
+   switch and its on/off state via aria-checked (set in JS). */
+.toggle-switch {
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-strong);
+  background: var(--surface-tint-strong);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.toggle-switch__track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.toggle-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.toggle-switch.is-on {
+  background: rgba(63, 211, 242, 0.16);
+  border-color: var(--color-cyan-dim);
+}
+
+.toggle-switch.is-on .toggle-switch__thumb {
+  transform: translateX(20px);
+  background: var(--color-cyan);
+}
+
+.dashboard-panel {
+  padding: var(--space-6);
+}
+
+.dashboard-diagram {
+  width: 100%;
+  height: auto;
+  color: var(--color-text-muted);
+}
+
+/* Icons that only appear once their matching control is switched
+   on (VPN lock, Firewall shield, MFA lock) or once an outcome is
+   known (breach indicator, blocked mark). Toggling one shared
+   class from JS keeps the show/hide logic identical for all five.
+   transform-box/transform-origin are needed here (not just on
+   .breach-indicator below) because control-icon-pop scales these
+   <g> elements, and SVG's default transform origin is the whole
+   document, not the element itself. */
+.control-icon {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.control-icon.is-visible {
+  opacity: 1;
+  /* A quick scale-up-then-settle "pop," not a flat fade — so
+     switching a control on reads as something actually happening,
+     not just a UI element appearing. Re-plays every time the class
+     is removed and re-added, so toggling a control off and back on
+     pops again rather than only animating the first time. */
+  animation: control-icon-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes control-icon-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.breach-indicator {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.breach-indicator.is-visible {
+  animation: breach-pulse 1.6s ease-in-out infinite;
+}
+
+#dash-packet {
+  fill: var(--color-cyan);
+}
+
+#dash-packet.packet--breached {
+  fill: var(--color-red);
+}
+
+#dash-packet.packet--blocked {
+  fill: var(--color-green);
+}
+
+.live-explanation {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.live-explanation__headline {
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.live-explanation p {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-bottom: var(--space-2);
+}
+
+.dashboard-continue {
+  margin-top: var(--space-7);
+  display: flex;
+  justify-content: center;
+}
+
+@keyframes dash-packet-travel {
+  0% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(255px);
+  }
+  50% {
+    transform: translateX(255px);
+  }
+  95% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+#dash-packet {
+  animation-name: dash-packet-travel;
+}
+
+@keyframes breach-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breach-indicator.is-visible {
+    animation: none !important;
+  }
+
+  .control-icon.is-visible {
+    animation: none !important;
+  }
+
+  .stage-packet,
+  .stage-packet--blocked,
+  .stage-link--tunnel {
+    animation: none !important;
+  }
+
+  .minigame-card {
+    animation: none !important;
+  }
+
+  .minigame-card--wrong {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   18. RESULTS PAGE (Phase 5)
+   ============================================================ */
+.results-section {
+  margin-bottom: var(--space-5);
+}
+
+.results-card {
+  padding: var(--space-6);
+}
+
+.results-card h2 {
+  font-size: 1.05rem;
+  margin-bottom: var(--space-4);
+}
+
+/* Sub-section headings WITHIN one scenario's report card (Final
+   Defense Configuration / What Happened / Spot the Signs) — one
+   step down visually from the card's own h2, since these repeat
+   inside every one of the 4 scenario cards. */
+.results-card__subhead {
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Small trace-back label under a card's heading, naming which
+   declared Evaluation Metric (from the landing page's Study Setup
+   section) that specific card fulfills. Quieter than .eyebrow —
+   this repeats once per card, so it shouldn't compete for
+   attention the way the one page-level eyebrow does. */
+.metric-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin: -8px 0 var(--space-4);
+}
+
+.results-card__note {
+  margin-bottom: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+/* "What You Did" recap list */
+.recap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.recap-list li {
+  position: relative;
+  padding-left: var(--space-5);
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.recap-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-cyan);
+}
+
+/* "Your Final Defense Configuration" chips */
+.config-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* "What Happened" outcome panel */
+#outcome-panel .live-explanation__headline,
+.outcome-panel__headline {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: var(--space-3);
+}
+
+#outcome-panel p {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  margin-bottom: var(--space-2);
+}
+
+/* "Spot the Signs" indicator list */
+.indicator-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.indicator-item {
+  position: relative;
+  padding-left: var(--space-6);
+}
+
+.indicator-item::before {
+  content: "\26A0";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--color-red);
+  font-size: 0.85rem;
+}
+
+.indicator-item__title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 4px;
+}
+
+.indicator-item__detail {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.takeaway {
+  max-width: 70ch;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin: var(--space-2) 0 var(--space-7);
+}
+
+.results-restart {
+  display: flex;
+  justify-content: center;
+  padding-bottom: var(--space-8);
+}
+
+/* The Security Results page's closing fork: play the mini-game, or
+   skip straight to Final Results. Stacks on narrow screens since
+   both are meant to read as equally valid choices, not a primary
+   action with a small "skip" link tucked beside it. */
+.results-continue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 480px) {
+  .results-continue-actions {
+    flex-direction: column;
+  }
+}
+
+/* ============================================================
+   TUTORIAL ENGINE (tutorial.html)
+   The "Learn ___" walkthroughs reachable from the Dashboard. One
+   generic set of styles plays all three tutorials' scripts (see
+   tutorial.js) — an instructor dialogue bubble, a stage area for
+   the current visual, and a controls area for whatever interaction
+   the current scene needs.
+   ============================================================ */
+
+/* Replaces the topbar's step-progress nav on this page — a
+   tutorial is a side trip, not a numbered step, so "back to where
+   I came from" is the only wayfinding this page needs. */
+.tutorial-exit {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.tutorial-exit:hover {
+  color: var(--color-cyan);
+}
+
+.tutorial-stage {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-6);
+  margin-bottom: var(--space-5);
+}
+
+.tutorial-instructor {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.tutorial-instructor__badge {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(63, 211, 242, 0.12);
+  border: 1px solid var(--color-cyan-dim);
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.tutorial-instructor__label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+  margin-bottom: 4px;
+}
+
+.tutorial-instructor__text {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.tutorial-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-8);
+}
+
+.tutorial-controls__label {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.tutorial-complete__badge {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-green);
+}
+
+/* --- Stage diagrams: the simple, self-contained visuals each
+   scene shows, built from CSS shapes and a few emoji rather than
+   image assets, matching the network diagram already used on
+   dashboard.html. --- */
+.stage-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.stage-diagram--row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.stage-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stage-node__icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.stage-node__icon--large {
+  font-size: 2.6rem;
+}
+
+.stage-node__label {
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+}
+
+.stage-node--shield .stage-node__icon {
+  filter: drop-shadow(0 0 10px rgba(63, 211, 242, 0.35));
+}
+
+/* A short row of moving "packets" — small dots that animate
+   between two nodes, colored to signal safe vs. suspicious. */
+.stage-packets {
+  display: flex;
+  gap: var(--space-2);
+  height: 14px;
+  align-items: center;
+}
+
+.stage-packet {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-red);
+  animation: stage-packet-move 1.6s ease-in-out infinite;
+}
+
+.stage-packet--bad {
+  background: var(--color-red);
+}
+
+.stage-packet:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.stage-packet:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.stage-packet--stopped {
+  animation: none;
+  opacity: 0.5;
+}
+
+.stage-packet--blocked {
+  background: var(--color-red);
+  animation: stage-packet-blocked 1.4s ease-in-out infinite;
+}
+
+@keyframes stage-packet-move {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+
+@keyframes stage-packet-blocked {
+  0% {
+    transform: translateY(-14px) scale(1);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1.6);
+    opacity: 0;
+  }
+}
+
+.stage-warning {
+  color: var(--color-red);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.stage-safe {
+  color: var(--color-green);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.stage-danger {
+  color: var(--color-red);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.stage-caption {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+/* A connecting line between two nodes — plain/dotted when
+   unprotected, a thick animated "tunnel" once secured. */
+.stage-link {
+  position: relative;
+  width: 90px;
+  height: 4px;
+  align-self: center;
+}
+
+.stage-link--open {
+  border-top: 2px dashed var(--color-border-strong);
+}
+
+.stage-link--tunnel {
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--color-cyan-dim),
+    var(--color-cyan),
+    var(--color-cyan-dim)
+  );
+  background-size: 200% 100%;
+  animation: stage-tunnel-flow 2s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage-link__lock {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.95rem;
+}
+
+@keyframes stage-tunnel-flow {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* Mock login form used by the MFA tutorial — deliberately static
+   text, not real inputs, since nothing here needs to be typed. */
+.stage-login {
+  text-align: left;
+}
+
+.stage-login__row {
+  font-size: 0.92rem;
+  margin-bottom: var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.stage-login__value {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+.stage-login__value--ok {
+  color: var(--color-green);
+}
+
+.stage-split {
+  display: flex;
+  gap: var(--space-7);
+}
+
+.stage-split__side {
+  text-align: center;
+}
+
+.stage-split__label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+  margin-bottom: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  .stage-diagram--row {
+    flex-direction: column;
+  }
+
+  .stage-link {
+    width: 4px;
+    height: 40px;
+  }
+
+  .stage-link--open {
+    border-top: none;
+    border-left: 2px dashed var(--color-border-strong);
+  }
+
+  .stage-split {
+    gap: var(--space-5);
+  }
+}
+
+/* ============================================================
+   MINI-GAME: INBOX BLITZ (minigame.html)
+   The optional reflex round between Security Results and Final
+   Results. Deliberately given its own punchier personality (an
+   amber accent, bigger type, snappier motion) rather than reusing
+   the calm dashboard palette — this is meant to feel like a quick
+   arcade break, not another data screen.
+   ============================================================ */
+.minigame-eyebrow {
+  color: var(--color-amber);
+}
+
+.minigame-main {
+  max-width: 640px;
+}
+
+.minigame-hud {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.minigame-timer {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-tint);
+  overflow: hidden;
+  margin-bottom: var(--space-5);
+}
+
+.minigame-timer__bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f5a623, #ff5c7a);
+  border-radius: 999px;
+}
+
+.minigame-card {
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  margin-bottom: var(--space-4);
+  animation: minigame-card-in 0.25s ease;
+}
+
+@keyframes minigame-card-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.minigame-card__sender {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: var(--space-2);
+}
+
+.minigame-card__subject {
+  color: var(--color-text-muted);
+  font-size: 1.02rem;
+}
+
+.minigame-card--correct {
+  border-color: var(--color-green);
+  box-shadow: 0 0 0 2px rgba(62, 235, 166, 0.25);
+}
+
+.minigame-card--wrong {
+  border-color: var(--color-red);
+  animation: minigame-shake 0.4s ease;
+}
+
+@keyframes minigame-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.minigame-feedback {
+  text-align: center;
+  min-height: 1.4em;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: var(--space-4);
+}
+
+.minigame-feedback--correct {
+  color: var(--color-green);
+}
+
+.minigame-feedback--wrong {
+  color: var(--color-red);
+}
+
+.minigame-answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.minigame-btn {
+  padding: var(--space-5);
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border-strong);
+  background: var(--surface-tint);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.minigame-btn:hover {
+  transform: translateY(-2px);
+}
+
+.minigame-btn:active {
+  transform: translateY(0);
+}
+
+.minigame-btn--legit {
+  border-color: var(--color-green);
+}
+
+.minigame-btn--legit:hover {
+  background: rgba(62, 235, 166, 0.1);
+}
+
+.minigame-btn--phishing {
+  border-color: var(--color-red);
+}
+
+.minigame-btn--phishing:hover {
+  background: rgba(255, 92, 122, 0.1);
+}
+
+.minigame-end__score {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-amber);
+  margin: var(--space-3) 0;
+}
+
+.minigame-recap {
+  margin: var(--space-5) 0;
+  text-align: left;
+}
+
+.minigame-end__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 520px) {
+  .minigame-answers {
+    grid-template-columns: 1fr;
+  }
+
+  .minigame-hud {
+    font-size: 0.76rem;
+  }
+}

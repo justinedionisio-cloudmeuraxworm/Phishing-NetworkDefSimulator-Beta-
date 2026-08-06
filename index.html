@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Layered Defense &mdash; A Phishing Response Simulation</title>
+    <meta
+      name="description"
+      content="An interactive, browser-only simulation showing what a VPN, Firewall, and Multi-Factor Authentication each actually stop during a phishing attack — and what they don't."
+    />
+    <link rel="stylesheet" href="css/style.css" />
+
+    <!-- Runs before anything below paints, so the page never
+         flashes the wrong theme — see theme-init.js for why this
+         has no defer/async attribute. -->
+    <script src="js/theme-init.js"></script>
+  </head>
+  <body>
+    <!-- Decorative fixed background grid. Hidden from screen readers
+         because it carries no information of its own. -->
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <!-- ============================================================
+         TOP BAR
+         Shown on every page. The step list doubles as an honest
+         progress indicator: it tells the participant exactly where
+         they are in a real 5-step sequence, not just decoration.
+         ============================================================ -->
+    <header class="topbar">
+      <div class="topbar__brand">
+        <span class="brand-mark" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" focusable="false"><polygon points="8,1 14.1,4.5 14.1,11.5 8,15 1.9,11.5 1.9,4.5" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span>
+        <span class="brand-name"
+          >Layered<span class="brand-name-accent">Defense</span></span
+        >
+      </div>
+      <nav class="topbar__progress" aria-label="Simulation progress">
+        <span class="step step--current">
+          <span class="step__index">01</span>
+          <span class="step__label">Overview</span>
+        </span>
+        <span class="step">
+          <span class="step__index">02</span>
+          <span class="step__label" id="step-label-inbox">Inbox</span>
+        </span>
+        <span class="step">
+          <span class="step__index">03</span>
+          <span class="step__label">Login</span>
+        </span>
+        <span class="step">
+          <span class="step__index">04</span>
+          <span class="step__label">Defenses</span>
+        </span>
+        <span class="step">
+          <span class="step__index">05</span>
+          <span class="step__label">Results</span>
+        </span>
+      </nav>
+
+      <button
+        type="button"
+        id="theme-toggle"
+        class="theme-toggle"
+        aria-label="Switch to light mode"
+      >
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <g stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <line x1="8" y1="0.5" x2="8" y2="2.3" />
+            <line x1="8" y1="13.7" x2="8" y2="15.5" />
+            <line x1="0.5" y1="8" x2="2.3" y2="8" />
+            <line x1="13.7" y1="8" x2="15.5" y2="8" />
+            <line x1="2.6" y1="2.6" x2="3.9" y2="3.9" />
+            <line x1="12.1" y1="12.1" x2="13.4" y2="13.4" />
+            <line x1="2.6" y1="13.4" x2="3.9" y2="12.1" />
+            <line x1="12.1" y1="3.9" x2="13.4" y2="2.6" />
+          </g>
+        </svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            d="M13.5 9.5A6 6 0 1 1 6.5 2.5 4.8 4.8 0 0 0 13.5 9.5Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <!-- ============================================================
+         HERO
+         Two columns: the pitch + call to action on the left, and a
+         small "session monitor" panel on the right that previews the
+         laptop → internet → server path used later on the dashboard.
+         ============================================================ -->
+    <main class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Interactive Research Simulation</p>
+        <h1 class="hero__title">
+          See how one careless click
+          <span class="hero__title-accent">outruns</span> a VPN.
+        </h1>
+        <p class="hero__lede">
+          This lab walks you through a realistic phishing attempt, then lets
+          you switch on VPN, Firewall, and Multi-Factor Authentication to see
+          &mdash; control by control &mdash; what each one actually stops,
+          and what it doesn't.
+        </p>
+
+        <div class="hero__actions">
+          <button type="button" id="start-btn" class="btn btn--primary">
+            Start Simulation
+          </button>
+          <p class="hero__disclaimer">
+            No real credentials are collected. Nothing leaves your browser.
+          </p>
+        </div>
+      </div>
+
+      <div class="hero__console glass" aria-hidden="true">
+        <div class="console__scanline"></div>
+        <p class="console__label">Session Monitor</p>
+
+        <!-- Network path diagram: Laptop → Internet (with a threat
+             indicator) → Office Server, with an animated packet
+             traveling along the path. Purely illustrative here; this
+             same path becomes interactive on the dashboard page. -->
+        <svg
+          class="console__diagram"
+          viewBox="0 0 300 76"
+          role="img"
+          aria-label="Diagram of a laptop connecting through the internet to an office server"
+        >
+          <!-- Laptop -->
+          <g transform="translate(6,16)">
+            <rect
+              x="0"
+              y="0"
+              width="30"
+              height="20"
+              rx="3"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <rect x="-4" y="20" width="38" height="4" rx="2" fill="currentColor" />
+          </g>
+
+          <!-- Connection line -->
+          <line
+            x1="44"
+            y1="26"
+            x2="262"
+            y2="26"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-dasharray="4 5"
+            opacity="0.35"
+          />
+
+          <!-- Internet cloud, containing a small threat indicator.
+               This path is built from two mirrored pairs of arcs
+               (verified programmatically to be symmetric about its
+               own center) so it sits level rather than leaning. -->
+          <g transform="translate(125,16) rotate (5 40 16)">
+            <path
+              d="M8 26 a9 9 0 0 1 0-18 a12 12 0 0 1 23-3 a10 10 0 0 1 9 18 z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <circle cx="20" cy="12" r="2.6" fill="var(--color-red)" />
+          </g>
+
+          <!-- Office server -->
+          <g transform="translate(263,10)">
+            <rect
+              x="0"
+              y="0"
+              width="24"
+              height="32"
+              rx="3"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <circle cx="6" cy="8" r="1.5" fill="currentColor" />
+            <circle cx="6" cy="16" r="1.5" fill="currentColor" />
+            <circle cx="6" cy="24" r="1.5" fill="currentColor" />
+          </g>
+
+          <!-- Animated packet traveling from laptop toward the server -->
+          <circle
+            class="diagram__packet"
+            cx="47"
+            cy="26"
+            r="2.5"
+            fill="var(--color-cyan)"
+          />
+
+          <!-- Labels so each icon reads as what it represents, not just
+               an abstract shape -->
+          <text x="21" y="70" text-anchor="middle" class="diagram-caption">You</text>
+          <text x="147" y="70" text-anchor="middle" class="diagram-caption">Public Internet</text>
+          <text x="275" y="70" text-anchor="middle" class="diagram-caption">Server</text>
+        </svg>
+
+        <ul class="console__status">
+          <li class="chip chip--standby">
+            <span class="chip__dot"></span>VPN &mdash; STANDBY
+          </li>
+          <li class="chip chip--standby">
+            <span class="chip__dot"></span>FIREWALL &mdash; STANDBY
+          </li>
+          <li class="chip chip--standby">
+            <span class="chip__dot"></span>MFA &mdash; STANDBY
+          </li>
+        </ul>
+      </div>
+    </main>
+
+    <!-- ============================================================
+         STUDY SETUP (Input)
+         Declares the fixed inputs from the conceptual framework: all
+         5 threat scenarios a participant can choose from on
+         choose.html, and the controls under evaluation. Filled in by
+         main.js from THREAT_SCENARIOS (state.js) and CONTROLS
+         (scoring.js), so this section can never drift out of sync
+         with the scenario/dashboard pages that actually use those
+         same values.
+         ============================================================ -->
+    <section class="study-setup">
+      <div class="wrap">
+        <p class="eyebrow">Study Setup &mdash; choose one of the scenarios below</p>
+        <div class="study-setup__grid">
+          <div class="study-setup__card glass">
+            <h2 class="study-setup__title">Threat Scenarios</h2>
+            <p class="study-setup__note">
+              You'll pick one of these to walk through, on the next page.
+            </p>
+            <ul id="scenario-list" class="study-setup__controls">
+              <!-- Filled in by main.js -->
+            </ul>
+          </div>
+          <div class="study-setup__card glass">
+            <h2 class="study-setup__title">Controls Under Evaluation</h2>
+            <ul id="controls-list" class="study-setup__controls">
+              <!-- Filled in by main.js -->
+            </ul>
+          </div>
+          <div class="study-setup__card glass">
+            <h2 class="study-setup__title">Evaluation Metrics</h2>
+            <ul id="metrics-list" class="study-setup__controls">
+              <!-- Filled in by main.js -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p>
+        Educational simulation built for a quantitative research study on
+        layered network security. Runs entirely in your browser &mdash; HTML,
+        CSS &amp; JavaScript only, no server, no data collection.
+      </p>
+    </footer>
+
+    <!-- state.js must load before main.js: main.js calls resetState(),
+         which is defined in state.js. scoring.js must also load before
+         main.js: main.js reads CONTROLS to render the Study Setup
+         section's control list. -->
+    <script src="js/theme.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/scoring.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
