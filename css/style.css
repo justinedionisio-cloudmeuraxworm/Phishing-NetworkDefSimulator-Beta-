@@ -2096,12 +2096,15 @@ p {
 }
 
 /* ============================================================
-   MINI-GAME: INBOX BLITZ (minigame.html)
-   The optional reflex round between Security Results and Final
-   Results. Deliberately given its own punchier personality (an
-   amber accent, bigger type, snappier motion) rather than reusing
-   the calm dashboard palette — this is meant to feel like a quick
-   arcade break, not another data screen.
+   MINI-GAME: OUTRUN THE INBOX (minigame.html)
+   The optional arcade break between Security Results and Final
+   Results. A Chrome-offline-dino-style endless runner: jump
+   malware bugs, crouch under phishing hooks, speed ramps with
+   survival time. A hit freezes the run for a 5-question quiz
+   drawn from QUIZ_BANK; wrong answers cost one of 5 shared
+   shields; shields at zero ends the run. Kept in the same dark
+   glass / amber-accent arcade personality as the round game this
+   replaces, rather than the calmer dashboard palette.
    ============================================================ */
 .minigame-eyebrow {
   color: var(--color-amber);
@@ -2111,22 +2114,24 @@ p {
   max-width: 640px;
 }
 
-.minigame-hud {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
-}
-
+/* Countdown bar — reused as-is for each quiz question's timer.
+   Needs width: 100% explicitly: its parent (.quiz-overlay, via
+   .dino-overlay) uses align-items: center rather than stretch, so
+   without this the track shrink-wraps to its own content — and its
+   only child (.minigame-timer__bar) is a percentage width relative
+   to THIS box, which can't resolve against an indeterminate/auto
+   width. Net effect: both collapsed to ~0px and the bar vanished,
+   even though the countdown itself kept working correctly under
+   the hood. .quiz-overlay__head and .quiz-choices already set their
+   own width: 100% for the same reason — this was the one sibling
+   that was missing it. */
 .minigame-timer {
+  width: 100%;
   height: 8px;
   border-radius: 999px;
   background: var(--surface-tint);
   overflow: hidden;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .minigame-timer__bar {
@@ -2136,46 +2141,91 @@ p {
   border-radius: 999px;
 }
 
-.minigame-card {
-  padding: var(--space-8) var(--space-6);
-  text-align: center;
-  margin-bottom: var(--space-4);
-  animation: minigame-card-in 0.25s ease;
+/* ---- HUD strip above the runner ---- */
+.dino-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  margin-bottom: var(--space-3);
 }
 
-@keyframes minigame-card-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.92) translateY(6px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+.dino-hud__shields {
+  display: flex;
+  gap: 5px;
 }
 
-.minigame-card__sender {
+.shield-icon svg {
+  display: block;
+}
+
+.shield-icon svg polygon {
+  fill: var(--color-cyan);
+  stroke: none;
+}
+
+.shield-icon--lost svg polygon {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.4;
+  opacity: 0.7;
+}
+
+.dino-hud__score {
+  font-size: 1.05rem;
   font-weight: 700;
-  font-size: 1.25rem;
-  margin-bottom: var(--space-2);
+  letter-spacing: 0.03em;
+  color: var(--color-text);
 }
 
-.minigame-card__subject {
-  color: var(--color-text-muted);
-  font-size: 1.02rem;
+.dino-hud__best {
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+  letter-spacing: 0.03em;
 }
 
-.minigame-card--correct {
-  border-color: var(--color-green);
-  box-shadow: 0 0 0 2px rgba(62, 235, 166, 0.25);
+/* ---- The runner stage itself ---- */
+.dino-stage {
+  position: relative;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--surface-tint);
+  overflow: hidden;
+  touch-action: none;
 }
 
-.minigame-card--wrong {
-  border-color: var(--color-red);
-  animation: minigame-shake 0.4s ease;
+/* Added by minigame.js while the quiz overlay is up (see
+   startQuizSession/endQuizSession/showGameOver), so the stage has
+   enough height for the quiz content instead of staying pinned to
+   the canvas's short 640x220 aspect ratio and clipping the lower
+   answer buttons via overflow: hidden above. */
+.dino-stage--quiz {
+  min-height: 420px;
 }
 
-@keyframes minigame-shake {
+@media (max-width: 520px) {
+  .dino-stage--quiz {
+    /* Answer choices stack into a single column below 520px
+       (see .quiz-choices in the media query further down), so
+       the quiz needs more vertical room on small screens, not less. */
+    min-height: 520px;
+  }
+}
+
+#dino-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 220;
+  cursor: pointer;
+}
+
+.dino-stage--shake {
+  animation: dino-shake 0.4s ease;
+}
+
+@keyframes dino-shake {
   0%, 100% {
     transform: translateX(0);
   }
@@ -2193,65 +2243,177 @@ p {
   }
 }
 
-.minigame-feedback {
+/* Shared positioning for anything that covers the stage: the
+   start screen, and the quiz. */
+.dino-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  min-height: 1.4em;
+  padding: var(--space-6);
+}
+
+/* The browser's built-in [hidden] rule (display: none) only wins
+   when nothing else in the page sets `display` on the same element.
+   Because .dino-overlay above sets display: flex unconditionally,
+   it was silently overriding [hidden] — so toggling .hidden in JS
+   (start-overlay, quiz-overlay) never actually hid either overlay.
+   This re-asserts display: none whenever the hidden attribute is
+   present, so JS's .hidden = true/false works again. */
+.dino-overlay[hidden] {
+  display: none;
+}
+
+.dino-overlay__title {
+  font-size: 1.15rem;
   font-weight: 700;
-  font-size: 0.95rem;
+  margin-bottom: var(--space-2);
+}
+
+.dino-overlay__note {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 46ch;
+  margin-bottom: var(--space-5);
+}
+
+/* ---- The quiz that appears on every hit ---- */
+.quiz-overlay {
+  justify-content: flex-start;
+  padding: var(--space-5);
+  animation: dino-quiz-in 0.2s ease;
+  /* .dino-stage below is only as tall as the canvas (a short,
+     wide 640x220 strip), which isn't enough room for a question
+     plus 4 answer buttons plus feedback text. .dino-stage--quiz
+     gives the stage extra height while the quiz is up, and this
+     overflow-y is a safety net so nothing gets silently clipped
+     (and invisible) if it still doesn't all fit. */
+  overflow-y: auto;
+}
+
+@keyframes dino-quiz-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.quiz-overlay__head {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-amber);
+  margin-bottom: var(--space-3);
+}
+
+.quiz-question {
+  font-weight: 700;
+  font-size: 1.02rem;
+  line-height: 1.5;
   margin-bottom: var(--space-4);
 }
 
-.minigame-feedback--correct {
-  color: var(--color-green);
-}
-
-.minigame-feedback--wrong {
-  color: var(--color-red);
-}
-
-.minigame-answers {
+.quiz-choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
+  gap: var(--space-3);
+  width: 100%;
 }
 
-.minigame-btn {
-  padding: var(--space-5);
-  font-size: 1.05rem;
-  font-weight: 700;
+.quiz-choice-btn {
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.35;
   border-radius: var(--radius-md);
   border: 2px solid var(--color-border-strong);
   background: var(--surface-tint);
   color: var(--color-text);
   cursor: pointer;
+  text-align: left;
   transition: transform 0.1s ease, border-color 0.15s ease;
 }
 
-.minigame-btn:hover {
-  transform: translateY(-2px);
+.quiz-choice-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--color-cyan-dim);
 }
 
-.minigame-btn:active {
-  transform: translateY(0);
+.quiz-choice-btn:disabled {
+  cursor: default;
 }
 
-.minigame-btn--legit {
+.quiz-choice-btn--correct {
   border-color: var(--color-green);
+  background: rgba(62, 235, 166, 0.12);
 }
 
-.minigame-btn--legit:hover {
-  background: rgba(62, 235, 166, 0.1);
-}
-
-.minigame-btn--phishing {
+.quiz-choice-btn--wrong {
   border-color: var(--color-red);
+  background: rgba(255, 92, 122, 0.12);
 }
 
-.minigame-btn--phishing:hover {
-  background: rgba(255, 92, 122, 0.1);
+.quiz-feedback {
+  min-height: 2.6em;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: var(--space-4);
 }
 
+.quiz-feedback--correct {
+  color: var(--color-green);
+}
+
+.quiz-feedback--wrong {
+  color: var(--color-red);
+}
+
+/* ---- On-screen jump/crouch controls (also usable with keyboard
+   or by tapping the stage itself — see minigame.js) ---- */
+.dino-controls {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.dino-btn {
+  flex: 1;
+  padding: var(--space-4);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--surface-tint);
+  color: var(--color-text);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.dino-btn:active {
+  transform: translateY(1px);
+}
+
+.dino-btn--primary {
+  border-color: var(--color-cyan-dim);
+  color: var(--color-cyan);
+}
+
+/* ---- Results screen (reuses .results-card / .indicator-list) ---- */
 .minigame-end__score {
   font-size: 3rem;
   font-weight: 800;
@@ -2272,12 +2434,25 @@ p {
   margin-top: var(--space-6);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .dino-stage--shake {
+    animation: none;
+  }
+  .quiz-overlay {
+    animation: none;
+  }
+}
+
 @media (max-width: 520px) {
-  .minigame-answers {
+  .quiz-choices {
     grid-template-columns: 1fr;
   }
 
-  .minigame-hud {
-    font-size: 0.76rem;
+  .dino-overlay {
+    padding: var(--space-4);
+  }
+
+  .quiz-question {
+    font-size: 0.95rem;
   }
 }

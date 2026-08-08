@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Inbox Blitz &mdash; Layered Defense Simulation</title>
+    <title>Outrun the Inbox &mdash; Layered Defense Simulation</title>
     <meta
       name="description"
-      content="A fast reflex round: is it Legit or Phishing? You've got a few seconds to decide."
+      content="An endless runner: dodge malware bugs and phishing hooks. Get hit, and a quiz pulled from the simulation stands between you and the next stretch."
     />
     <link rel="stylesheet" href="css/style.css" />
 
@@ -82,49 +82,82 @@
     <main class="page-main minigame-main">
       <section class="page-intro">
         <p class="eyebrow minigame-eyebrow">Optional &mdash; Inbox Blitz</p>
-        <h1 class="page-title">Legit, or Phishing?</h1>
+        <h1 class="page-title">Outrun the Inbox</h1>
         <p class="page-lede">
-          10 rounds. A few seconds each. Tap fast, trust your gut &mdash; you
-          already know more of these tells than you think.
+          Jump malware bugs, crouch under phishing hooks &mdash; the longer
+          you last, the faster it gets. Every hit stops the run cold for a
+          5-question quiz pulled straight from this simulation. Answer
+          wrong and you lose a shield; lose all 5 and it's game over.
         </p>
       </section>
 
-      <!-- ROUND VIEW: one message + timer + two big answer buttons.
-           Shown by default; minigame.js swaps to the end view once
-           all rounds are done. -->
-      <section id="minigame-round">
-        <div class="minigame-hud">
-          <span id="round-counter">Round 1 of 10</span>
-          <span id="score-counter">Score: 0</span>
-          <span id="streak-counter">Streak: 0</span>
+      <!-- GAME VIEW: shown by default; minigame.js swaps to the
+           results view once shields hit zero. -->
+      <section id="dino-game">
+        <div class="dino-hud">
+          <div class="dino-hud__shields" id="shield-row" aria-label="Shields remaining"></div>
+          <span class="dino-hud__score" id="score-counter">00000</span>
+          <span class="dino-hud__best" id="best-counter">BEST 00000</span>
         </div>
 
-        <div class="minigame-timer">
-          <div id="timer-bar" class="minigame-timer__bar"></div>
+        <div class="dino-stage" id="dino-stage">
+          <canvas
+            id="dino-canvas"
+            width="640"
+            height="220"
+            role="img"
+            aria-label="Runner game area. Use the buttons below, or Space to jump and the down arrow to crouch."
+          ></canvas>
+
+          <!-- START OVERLAY -->
+          <div class="dino-overlay glass" id="start-overlay">
+            <p class="dino-overlay__title">Ready to run?</p>
+            <p class="dino-overlay__note">
+              Jump malware bugs. Crouch under phishing hooks. Getting hit
+              launches a quiz &mdash; answer it wrong too many times and
+              the run ends there.
+            </p>
+            <button type="button" class="btn btn--primary" id="start-btn">
+              Tap or press Space to start
+            </button>
+          </div>
+
+          <!-- QUIZ OVERLAY: filled in by minigame.js on every hit -->
+          <div class="dino-overlay quiz-overlay glass" id="quiz-overlay" hidden>
+            <div class="quiz-overlay__head">
+              <span id="quiz-progress">Question 1 of 5</span>
+              <span id="quiz-hitbadge">Hit 1</span>
+            </div>
+            <div class="minigame-timer">
+              <div id="quiz-timer-bar" class="minigame-timer__bar"></div>
+            </div>
+            <p class="quiz-question" id="quiz-question"></p>
+            <div class="quiz-choices" id="quiz-choices">
+              <button type="button" class="btn quiz-choice-btn" data-choice="0"></button>
+              <button type="button" class="btn quiz-choice-btn" data-choice="1"></button>
+              <button type="button" class="btn quiz-choice-btn" data-choice="2"></button>
+              <button type="button" class="btn quiz-choice-btn" data-choice="3"></button>
+            </div>
+            <p class="quiz-feedback" id="quiz-feedback" aria-live="polite"></p>
+          </div>
         </div>
 
-        <div id="minigame-card" class="minigame-card glass">
-          <!-- Filled in by minigame.js -->
-        </div>
-
-        <p id="feedback-flash" class="minigame-feedback" aria-live="polite"></p>
-
-        <div class="minigame-answers">
-          <button type="button" id="answer-legit" class="btn minigame-btn minigame-btn--legit">
-            &#10003; Legit
+        <div class="dino-controls" id="dino-controls">
+          <button type="button" class="btn dino-btn" id="btn-crouch">
+            &#9660; Crouch
           </button>
-          <button type="button" id="answer-phishing" class="btn minigame-btn minigame-btn--phishing">
-            &#9888; Phishing
+          <button type="button" class="btn dino-btn dino-btn--primary" id="btn-jump">
+            &#9650; Jump
           </button>
         </div>
       </section>
 
-      <!-- END VIEW: final score + recap. Hidden until the round loop finishes. -->
-      <section id="minigame-end" class="minigame-end" hidden>
+      <!-- RESULTS VIEW: hidden until shields hit zero. -->
+      <section id="dino-results" class="minigame-end" hidden>
         <div class="results-card glass">
-          <p class="minigame-eyebrow">Round Complete</p>
-          <p class="minigame-end__score" id="final-score">0 / 10</p>
-          <p class="results-card__note">Best streak this round: <strong id="final-streak">0</strong></p>
+          <p class="minigame-eyebrow">Run Complete</p>
+          <p class="minigame-end__score" id="final-distance">0 m</p>
+          <p class="results-card__note" id="final-summary"></p>
           <p class="results-card__note" id="high-score-line"></p>
 
           <div id="missed-recap" class="minigame-recap">
@@ -147,13 +180,14 @@
       <p>
         Educational simulation built for a quantitative research study on
         layered network security. Runs entirely in your browser &mdash; HTML,
-        CSS &amp; JavaScript only, no server, no data collection. Your score
-        is remembered only on this device.
+        CSS &amp; JavaScript only, no server, no data collection. Your best
+        run is remembered only on this device.
       </p>
     </footer>
 
-    <!-- state.js first (escapeHtml), then minigame-data.js (the
-         message pool), then minigame.js (the game itself). -->
+    <!-- state.js first (escapeHtml + shared helpers), then
+         minigame-data.js (the quiz bank), then minigame.js
+         (the runner + quiz engine itself). -->
     <script src="js/theme.js"></script>
     <script src="js/state.js"></script>
     <script src="js/minigame-data.js"></script>
