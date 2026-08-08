@@ -1787,6 +1787,24 @@ p {
   color: var(--color-cyan);
 }
 
+/* Sits above the page title, not in the topbar — unlike the
+   tutorial page, Outrun the Inbox is still positioned inside the
+   normal step flow (topbar keeps showing 05 Results as current), so
+   this doesn't replace anything, it's just an easy way out of an
+   optional game without finishing it or losing all 5 shields first.
+   Same look as .tutorial-exit above for a consistent feel. */
+.minigame-exit {
+  display: inline-block;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  text-decoration: none;
+  margin-bottom: var(--space-3);
+}
+
+.minigame-exit:hover {
+  color: var(--color-cyan);
+}
+
 .tutorial-stage {
   min-height: 220px;
   display: flex;
@@ -2193,6 +2211,24 @@ p {
   background: var(--surface-tint);
   overflow: hidden;
   touch-action: none;
+  /* The canvas's own 640x220 aspect ratio makes this box very short
+     on narrow screens (e.g. ~112px tall at a 375px viewport width) —
+     fine for the canvas itself, but not for the start screen's
+     title + note + button, which need real room. Content centered
+     in a too-short box gets clipped symmetrically top AND bottom by
+     the overflow: hidden above, which is what was showing up as the
+     start screen's contents looking mispositioned/cut off on mobile.
+     This floor applies whenever the stage isn't already taller (the
+     quiz's own min-height below still wins while a quiz is up). */
+  min-height: 260px;
+}
+
+@media (max-width: 520px) {
+  .dino-stage {
+    /* The start note wraps to more lines on a narrow screen, so it
+       needs a bit more room here than the 260px baseline above. */
+    min-height: 300px;
+  }
 }
 
 /* Added by minigame.js while the quiz overlay is up (see

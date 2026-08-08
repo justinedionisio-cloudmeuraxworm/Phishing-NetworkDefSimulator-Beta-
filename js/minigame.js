@@ -35,7 +35,7 @@ var PLAYER_X = 64;
 var STAND_W = 30, STAND_H = 40;
 var CROUCH_W = 44, CROUCH_H = 20;
 
-var GRAVITY = 1200; // px/s^2
+var GRAVITY = 1550; // px/s^2
 // Jump apex works out to JUMP_SPEED^2 / (2*GRAVITY) ≈ 34.6px. That's
 // deliberately kept between BUG_H (22 — how high you must rise to
 // clear a bug) and HOOK_CLEARANCE + HOOK_H (44 — how high you'd have
@@ -44,7 +44,7 @@ var GRAVITY = 1200; // px/s^2
 // hook's 30–44 band unless they clear it entirely — so capping the
 // apex below 44 means jumping can never dodge a hook, only a bug.
 // Crouching is the only way under a hook now.
-var JUMP_SPEED = 390; // px/s, upward
+var JUMP_SPEED = 380; // px/s, upward
 
 var BASE_SPEED = 230; // px/s
 // No ceiling on speed — see update(): it climbs by SPEED_RAMP_PER_SEC
@@ -60,9 +60,16 @@ var HOOK_CLEARANCE = 30; // hook's bottom edge sits this far above the ground
 
 var HP_MAX = 5;
 var QUESTIONS_PER_HIT = 5;
-var TIMER_BASE_SEC = 15;
+// Timer values, sized to the actual quiz bank: with the expanded
+// 78-question pool, a question plus its 4 choices average 32-45
+// words to read (up to 57 for the longest tier-3 ones) — at a
+// moderate ~200 words/min reading pace that's already 10-17s just
+// to read once, before deciding. The old values (15s down to a 5s
+// floor) were sized for the original bank's shorter, more skimmable
+// questions and left no real time to read the newer, harder ones.
+var TIMER_BASE_SEC = 24;
 var TIMER_STEP_SEC = 2;
-var TIMER_MIN_SEC = 5;
+var TIMER_MIN_SEC = 10;
 
 var HIT_PAUSE_MS = 450; // beat before the quiz appears, so the hit reads clearly
 var ANSWER_FEEDBACK_MS = 1200; // time to read right/wrong before advancing
